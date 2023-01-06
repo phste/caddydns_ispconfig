@@ -1,4 +1,4 @@
-package template
+package caddydns_ispconfig
 
 import (
 	"github.com/caddyserver/caddy/v2"
