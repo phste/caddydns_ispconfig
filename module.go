@@ -1,15 +1,13 @@
 package template
 
 import (
-	"fmt"
-
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	libdnstemplate "github.com/libdns/template"
+	libdns_ispconfig "github.com/phste/libdns_ispconfig"
 )
 
 // Provider lets Caddy read and manipulate DNS records hosted by this DNS provider.
-type Provider struct{ *libdnstemplate.Provider }
+type Provider struct{ *libdns_ispconfig.Provider }
 
 func init() {
 	caddy.RegisterModule(Provider{})
@@ -18,42 +16,61 @@ func init() {
 // CaddyModule returns the Caddy module information.
 func (Provider) CaddyModule() caddy.ModuleInfo {
 	return caddy.ModuleInfo{
-		ID:  "dns.providers.template",
-		New: func() caddy.Module { return &Provider{new(libdnstemplate.Provider)} },
+		ID:  "dns.providers.ispconfig",
+		New: func() caddy.Module { return &Provider{new(libdns_ispconfig.Provider)} },
 	}
 }
 
-// TODO: This is just an example. Useful to allow env variable placeholders; update accordingly.
 // Provision sets up the module. Implements caddy.Provisioner.
 func (p *Provider) Provision(ctx caddy.Context) error {
-	p.Provider.APIToken = caddy.NewReplacer().ReplaceAll(p.Provider.APIToken, "")
-	return fmt.Errorf("TODO: not implemented")
+	p.Provider.Endpoint = caddy.NewReplacer().ReplaceAll(p.Provider.Endpoint, "")
+	p.Provider.Username = caddy.NewReplacer().ReplaceAll(p.Provider.Username, "")
+	p.Provider.Password = caddy.NewReplacer().ReplaceAll(p.Provider.Password, "")
+	return nil
 }
 
-// TODO: This is just an example. Update accordingly.
 // UnmarshalCaddyfile sets up the DNS provider from Caddyfile tokens. Syntax:
 //
-// providername [<api_token>] {
-//     api_token <api_token>
+// ispconfig {
+//     endpoint <endpoint>
+//     username <username>
+//     password <password>
 // }
 //
 // **THIS IS JUST AN EXAMPLE AND NEEDS TO BE CUSTOMIZED.**
 func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		if d.NextArg() {
-			p.Provider.APIToken = d.Val()
-		}
-		if d.NextArg() {
 			return d.ArgErr()
 		}
 		for nesting := d.Nesting(); d.NextBlock(nesting); {
 			switch d.Val() {
-			case "api_token":
-				if p.Provider.APIToken != "" {
-					return d.Err("API token already set")
+			case "endpoint":
+				if p.Provider.Endpoint != "" {
+					return d.Err("Endpoint already set")
 				}
 				if d.NextArg() {
-					p.Provider.APIToken = d.Val()
+					p.Provider.Endpoint = d.Val()
+				}
+				if d.NextArg() {
+					return d.ArgErr()
+				}
+			case "username":
+				if p.Provider.Username != "" {
+					return d.Err("Username already set")
+				}
+				if d.NextArg() {
+					p.Provider.Username = d.Val()
+				}
+				if d.NextArg() {
+					return d.ArgErr()
+				}
+			case "password":
+				if p.Provider.Password != "" {
+					return d.Err("Password already set")
+				}
+				if d.NextArg() {
+					p.Provider.Password = d.Val()
 				}
 				if d.NextArg() {
 					return d.ArgErr()
@@ -63,9 +80,19 @@ func (p *Provider) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 			}
 		}
 	}
-	if p.Provider.APIToken == "" {
-		return d.Err("missing API token")
+
+	if p.Provider.Endpoint == "" {
+		return d.Err("The configuration is missing the 'endpoint'.")
 	}
+
+	if p.Provider.Username == "" {
+		return d.Err("The configuration is missing the 'username'.")
+	}
+
+	if p.Provider.Password == "" {
+		return d.Err("The configuration is missing the 'password'.")
+	}
+
 	return nil
 }
 
